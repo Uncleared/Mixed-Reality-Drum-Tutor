@@ -26,7 +26,8 @@ public class MidiRecorder : MonoBehaviour
     public List<PressData> onReleaseTimestamps;
 
     //int frame = 0;
-    int noteIndex = 0;
+    int pressNoteIndex = 0;
+    int releaseNoteIndex = 0;
 
     float currentTime = 0f;
 
@@ -48,13 +49,46 @@ public class MidiRecorder : MonoBehaviour
     {
         isPlaying = true;
         currentTime = 0f;
-        noteIndex = 0;
+        pressNoteIndex = 0;
+        releaseNoteIndex = 0;
     }
 
     public void ResetRecording()
     {
 
         onPressTimestamps = new List<PressData>();
+        onReleaseTimestamps = new List<PressData>();
+    }
+
+    void DisplayNote(int mappedMidiNumber, float velocity)
+    {
+        MeshRenderer noteRenderer = noteHighlights[mappedMidiNumber];
+        noteRenderer.enabled = true;
+        Color velocityColor = Color.Lerp(Color.blue, Color.yellow, velocity);
+        noteRenderer.material.color = velocityColor;
+
+        float factor = Mathf.Pow(2, 1f);
+        noteRenderer.material.SetColor("_EmissionColor", velocityColor * factor);
+
+        GameObject hitParticle = Instantiate(hitParticlePrefab);
+        hitParticle.transform.position = noteRenderer.transform.position;
+        hitParticle.SetActive(true);
+        ParticleSystem ps = hitParticle.GetComponent<ParticleSystem>();
+        ParticleSystem.EmissionModule em = ps.emission;
+        ps.startColor = velocityColor;
+        ps.GetComponent<ParticleSystemRenderer>().material.EnableKeyword("_EmissionColor");
+        ps.GetComponent<ParticleSystemRenderer>().material.SetColor("_EmissionColor", velocityColor * factor * 3);
+
+        em.type = ParticleSystemEmissionType.Time;
+        em.SetBursts(
+         new ParticleSystem.Burst[] {
+                      new ParticleSystem.Burst (0.0f, velocity * 50),
+         });
+        ps.Play();
+
+        Destroy(hitParticle, 1.2f);
+
+        audioSource.PlayOneShot(audioClips[mappedMidiNumber]);
     }
 
     Dictionary<int, int> mapping = new Dictionary<int, int>();
@@ -94,50 +128,24 @@ public class MidiRecorder : MonoBehaviour
                 // object is only useful to specify the target note (note
                 // number, channel number, device name, etc.) Use the velocity
                 // argument as an input note velocity.
-                Debug.Log(string.Format(
-                    "Note On #{0} ({1}) vel:{2:0.00} ch:{3} dev:'{4}'",
-                    note.noteNumber,
-                    note.shortDisplayName,
-                    velocity,
-                    (note.device as Minis.MidiDevice)?.channel,
-                    note.device.description.product
-                ));
+                //Debug.Log(string.Format(
+                //    "Note On #{0} ({1}) vel:{2:0.00} ch:{3} dev:'{4}'",
+                //    note.noteNumber,
+                //    note.shortDisplayName,
+                //    velocity,
+                //    (note.device as Minis.MidiDevice)?.channel,
+                //    note.device.description.product
+                //));
 
                 if(mapping.ContainsKey(note.noteNumber))
                 {
-                    MeshRenderer noteRenderer = noteHighlights[mapping[note.noteNumber]];
-                    noteRenderer.enabled = true;
-                    Color velocityColor = Color.Lerp(Color.blue, Color.yellow, velocity);
-                    noteRenderer.material.color = velocityColor;
-
-                    float factor = Mathf.Pow(2, 1f);
-                    noteRenderer.material.SetColor("_EmissionColor", velocityColor * factor);
-
-                    GameObject hitParticle = Instantiate(hitParticlePrefab);
-                    hitParticle.transform.position = noteRenderer.transform.position;
-                    hitParticle.SetActive(true);
-                    ParticleSystem ps = hitParticle.GetComponent<ParticleSystem>();
-                    ParticleSystem.EmissionModule em = ps.emission;
-                    ps.startColor = velocityColor;
-                    ps.GetComponent<ParticleSystemRenderer>().material.EnableKeyword("_EmissionColor");
-                    ps.GetComponent<ParticleSystemRenderer>().material.SetColor("_EmissionColor", velocityColor * factor * 3);
-                    em.type = ParticleSystemEmissionType.Time;
-                    em.SetBursts(
-                     new ParticleSystem.Burst[] {
-                      new ParticleSystem.Burst (0.0f, velocity * 50),
-                     });
-                    ps.Play();
-
-                    Destroy(hitParticle, 1.2f);
+                    DisplayNote(mapping[note.noteNumber], velocity);
 
                     if(isRecording)
                     {
-                        PressData pressData = new PressData() { midiNumber = note.noteNumber, timeStamp = currentTime, velocity = note.velocity };
+                        PressData pressData = new PressData() { midiNumber = note.noteNumber, timeStamp = currentTime, velocity = velocity };
                         onPressTimestamps.Add(pressData);
                     }
-
-                    audioSource.PlayOneShot(audioClips[mapping[note.noteNumber]], velocity);
-                    
                 }
                 if (note.noteNumber == 36)
                 {
@@ -152,7 +160,6 @@ public class MidiRecorder : MonoBehaviour
                     }
                 }
 
-
                 if (note.noteNumber == 38)
                 {
                     PlayRecorded();
@@ -163,14 +170,21 @@ public class MidiRecorder : MonoBehaviour
                 if (mapping.ContainsKey(note.noteNumber))
                 {
                     noteHighlights[mapping[note.noteNumber]].enabled = false;
+                    if (isRecording)
+                    {
+                        PressData pressData = new PressData() { midiNumber = note.noteNumber, timeStamp = currentTime, velocity = note.velocity };
+                        onReleaseTimestamps.Add(pressData);
+                    }
+
                 }
-                Debug.Log(string.Format(
-                    "Note Off #{0} ({1}) ch:{2} dev:'{3}'",
-                    note.noteNumber,
-                    note.shortDisplayName,
-                    (note.device as Minis.MidiDevice)?.channel,
-                    note.device.description.product
-                ));
+
+                //Debug.Log(string.Format(
+                //    "Note Off #{0} ({1}) ch:{2} dev:'{3}'",
+                //    note.noteNumber,
+                //    note.shortDisplayName,
+                //    (note.device as Minis.MidiDevice)?.channel,
+                //    note.device.description.product
+                //));
             };
         };
     }
@@ -184,40 +198,42 @@ public class MidiRecorder : MonoBehaviour
         }
 
         // if playing back
-        if(isPlaying)
+        if (isPlaying)
         {
-            PressData currentPress = onPressTimestamps[noteIndex];
-            if(currentTime > currentPress.timeStamp)
+            if (pressNoteIndex < onPressTimestamps.Count)
             {
-                noteIndex++;
+                PressData currentPress = onPressTimestamps[pressNoteIndex];
+                if (currentTime > currentPress.timeStamp)
+                {
 
-                int mappedMidiNumber = mapping[currentPress.midiNumber];
-                MeshRenderer noteRenderer = noteHighlights[mappedMidiNumber];
+                    pressNoteIndex++;
 
-                GameObject hitParticle = Instantiate(hitParticlePrefab);
-                hitParticle.transform.position = noteRenderer.transform.position;
-                hitParticle.SetActive(true);
-                ParticleSystem ps = hitParticle.GetComponent<ParticleSystem>();
-                ParticleSystem.EmissionModule em = ps.emission;
-                ps.startColor = Color.red;
-                ps.GetComponent<ParticleSystemRenderer>().material.EnableKeyword("_EmissionColor");
-                ps.GetComponent<ParticleSystemRenderer>().material.SetColor("_EmissionColor", Color.red * 2f);
-                em.type = ParticleSystemEmissionType.Time;
-                em.SetBursts(
-                 new ParticleSystem.Burst[] {
-                      new ParticleSystem.Burst (0.0f, 30 * 50),
-                 });
-                ps.Play();
-                audioSource.PlayOneShot(audioClips[mappedMidiNumber]);
+                    int mappedMidiNumber = mapping[currentPress.midiNumber];
 
-                Destroy(hitParticle, 1.2f);
-
+                    DisplayNote(mappedMidiNumber, currentPress.velocity);
+                }
             }
             // If at the end, stop playing
-            if(onPressTimestamps.Count == noteIndex)
+          
+
+            PressData currentRelease = onReleaseTimestamps[releaseNoteIndex];
+
+
+            if (currentTime > currentRelease.timeStamp)
+            {
+                releaseNoteIndex++;
+
+                int mappedMidiNumber = mapping[currentRelease.midiNumber];
+
+                noteHighlights[mappedMidiNumber].enabled = false;
+            }
+
+            // End playing on the final release
+            if (onReleaseTimestamps.Count == releaseNoteIndex)
             {
                 isPlaying = false;
             }
+            // If at the end, stop playing
         }
     }
 }
