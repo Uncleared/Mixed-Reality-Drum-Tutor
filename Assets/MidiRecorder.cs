@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Audio;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -13,7 +14,10 @@ public class MidiRecorder : MonoBehaviour
         public int midiNumber;
     }
 
-    public Image recordingIcon;
+    public Image statusImage;
+    public Sprite recordingSprite;
+    public Sprite playbackSprite;
+
     public GameObject hitParticlePrefab;
 
     public List<MeshRenderer> noteHighlights;
@@ -32,25 +36,33 @@ public class MidiRecorder : MonoBehaviour
     float currentTime = 0f;
 
     public List<AudioClip> audioClips;
-    public AudioSource audioSource;
+
+    public AudioMixerGroup audioMixer;
     public void BeginRecord()
     {
         ResetRecording();
         currentTime = 0f;
-        recordingIcon.enabled = true;
+        statusImage.enabled = true;
+        statusImage.sprite = recordingSprite;
     }
 
     public void EndRecord()
     {
-        recordingIcon.enabled = false;
+        statusImage.enabled = false;
     }
 
+    void PlaybackStopped()
+    {
+        statusImage.enabled = false;
+    }
     public void PlayRecorded()
     {
         isPlaying = true;
         currentTime = 0f;
         pressNoteIndex = 0;
         releaseNoteIndex = 0;
+        statusImage.enabled = true;
+        statusImage.sprite = playbackSprite;
     }
 
     public void ResetRecording()
@@ -88,7 +100,12 @@ public class MidiRecorder : MonoBehaviour
 
         Destroy(hitParticle, 1.2f);
 
-        audioSource.PlayOneShot(audioClips[mappedMidiNumber]);
+        GameObject audioSourceGO = new GameObject();
+
+        AudioSource audioSource = audioSourceGO.AddComponent<AudioSource>();
+        audioSource.outputAudioMixerGroup = audioMixer;
+
+        audioSource.PlayOneShot(audioClips[mappedMidiNumber], velocity);
     }
 
     Dictionary<int, int> mapping = new Dictionary<int, int>();
@@ -96,8 +113,8 @@ public class MidiRecorder : MonoBehaviour
     void Start()
     {
         ResetRecording();
-        audioSource = gameObject.AddComponent<AudioSource>();
-        recordingIcon.enabled = false;
+  
+        statusImage.enabled = false;
 
         // Disable the highlight graphics
         noteHighlights.ForEach(x => {
@@ -232,6 +249,7 @@ public class MidiRecorder : MonoBehaviour
             if (onReleaseTimestamps.Count == releaseNoteIndex)
             {
                 isPlaying = false;
+                PlaybackStopped();
             }
             // If at the end, stop playing
         }
