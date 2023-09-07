@@ -119,6 +119,7 @@ public class HandMocapRecorder : MonoBehaviour
         {
             return;
         }
+        currentTime = 0f;
         recording = true;
         decidedFilePath = GetFilePath();
         if (File.Exists(decidedFilePath))

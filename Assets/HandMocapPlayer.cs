@@ -123,7 +123,8 @@ public class HandMocapPlayer : MonoBehaviour
     }
     public void Play()
     {
-      
+        playbackData = new List<string[]>();
+
         // Read the data from the csv file and try to assign it
         string filePath = GetFilePath();
         if(File.Exists(filePath))
@@ -145,7 +146,6 @@ public class HandMocapPlayer : MonoBehaviour
             playing = true;
             currentFrame = 0;
             currentTime = 0f;
-            playbackData = new List<string[]>();
         }
        
 

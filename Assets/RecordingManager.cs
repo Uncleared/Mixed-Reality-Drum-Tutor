@@ -16,7 +16,7 @@ public class RecordingManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        selectedSlotText.text = "Slot: " + recordingSlot;
+        selectedSlotText.text = "Slot: " + (recordingSlot + 1);
         if(Input.GetKeyDown(KeyCode.Alpha1))
         {
             recordingSlot = 0;

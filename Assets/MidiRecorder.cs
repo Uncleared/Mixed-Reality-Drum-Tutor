@@ -177,7 +177,9 @@ public class MidiRecorder : MonoBehaviour
         AudioSource audioSource = audioSourceGO.AddComponent<AudioSource>();
         audioSource.outputAudioMixerGroup = audioMixer;
 
-        audioSource.PlayOneShot(audioClips[mappedMidiNumber], velocity);
+        AudioClip clip = audioClips[mappedMidiNumber];
+        audioSource.PlayOneShot(clip, velocity);
+        Destroy(audioSourceGO, clip.length + 0.3f);
     }
 
     Dictionary<int, int> mapping = new Dictionary<int, int>();
