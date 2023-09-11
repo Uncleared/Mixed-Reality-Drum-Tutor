@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using System.IO.Ports;
 
 public class MidiRecorder : MonoBehaviour
 {
@@ -43,6 +44,9 @@ public class MidiRecorder : MonoBehaviour
     public List<AudioClip> audioClips;
 
     public AudioMixerGroup audioMixer;
+
+    SerialPort arduino;
+
 
     string GetKeyOnFilePath()
     {
@@ -186,7 +190,9 @@ public class MidiRecorder : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-     
+        print(Application.persistentDataPath);
+        arduino = new SerialPort("COM11", 9600);
+        arduino.Open();
 
         ResetRecording();
   
@@ -282,6 +288,28 @@ public class MidiRecorder : MonoBehaviour
         };
     }
 
+    void VibrateFinger(int fingerIndex, float strength)
+    {
+        string writeString = "";
+        for(int i = 0; i < 5; i++)
+        {
+            if(i==fingerIndex)
+            {
+                writeString += Mathf.CeilToInt(strength * 8);
+            }
+            else
+            {
+                writeString += "0";
+            }
+        }
+        arduino.Write(writeString + "\r\n");
+    }
+
+    private void OnApplicationQuit()
+    {
+        arduino.Close();
+    }
+
     // Update is called once per frame
     void Update()
     {
@@ -304,6 +332,9 @@ public class MidiRecorder : MonoBehaviour
                     int mappedMidiNumber = mapping[currentPress.midiNumber];
 
                     DisplayNote(mappedMidiNumber, currentPress.velocity);
+
+                    int finger = currentPress.finger;
+                    VibrateFinger(finger, currentPress.velocity);
                 }
             }
             // If at the end, stop playing

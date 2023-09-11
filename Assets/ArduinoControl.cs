@@ -13,7 +13,6 @@ public class ArduinoControl : MonoBehaviour
     {
         arduino = new SerialPort(portName, 9600);
         arduino.Open();
-        arduino.ReadTimeout = 1;
     }
 
     void Update()
@@ -22,7 +21,7 @@ public class ArduinoControl : MonoBehaviour
         {
             if (Input.GetKeyDown("1"))
             {
-                arduino.Write(stringToSend);
+                arduino.Write(stringToSend + "\r\n");
                 Debug.Log(1);
             }
             //else if (Input.GetKey("0"))
