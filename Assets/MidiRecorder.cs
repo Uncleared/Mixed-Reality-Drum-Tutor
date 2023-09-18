@@ -19,6 +19,7 @@ public class MidiRecorder : MonoBehaviour
         public float velocity;
         public int midiNumber;
         public int finger;
+        public int hand;
     }
 
     public Image statusImage;
@@ -46,7 +47,8 @@ public class MidiRecorder : MonoBehaviour
 
     public AudioMixerGroup audioMixer;
 
-    SerialPort arduino;
+    SerialPort leftHandMotor;
+    SerialPort rightHandMotor;
 
 
     string GetKeyOnFilePath()
@@ -80,7 +82,7 @@ public class MidiRecorder : MonoBehaviour
         // Loop through the data and write each row to the CSV file
         foreach (PressData data in onPressTimestamps)
         {
-            streamWriter.WriteLine(data.timeStamp + "," + data.velocity + "," + data.midiNumber + "," + data.finger);
+            streamWriter.WriteLine(data.timeStamp + "," + data.velocity + "," + data.midiNumber + "," + data.finger + "," + data.hand);
         }
 
         // Close the StreamWriter to save the file
@@ -94,7 +96,7 @@ public class MidiRecorder : MonoBehaviour
         // Loop through the data and write each row to the CSV file
         foreach (PressData data in onReleaseTimestamps)
         {
-            streamWriter.WriteLine(data.timeStamp + "," + data.velocity + "," + data.midiNumber + "," + data.finger);
+            streamWriter.WriteLine(data.timeStamp + "," + data.velocity + "," + data.midiNumber + "," + data.finger + "," + data.hand);
         }
 
         // Close the StreamWriter to save the file
@@ -116,7 +118,7 @@ public class MidiRecorder : MonoBehaviour
         foreach (string line in lines)
         {
             string[] values = line.Split(',');
-            onPressTimestamps.Add(new PressData { timeStamp = float.Parse(values[0]), velocity = float.Parse(values[1]), midiNumber = int.Parse(values[2]), finger = int.Parse(values[3]) });
+            onPressTimestamps.Add(new PressData { timeStamp = float.Parse(values[0]), velocity = float.Parse(values[1]), midiNumber = int.Parse(values[2]), finger = int.Parse(values[3]), hand = int.Parse(values[4]) });
         }
 
         // Load from the file
@@ -127,7 +129,7 @@ public class MidiRecorder : MonoBehaviour
         foreach (string line in lines)
         {
             string[] values = line.Split(',');
-            onReleaseTimestamps.Add(new PressData { timeStamp = float.Parse(values[0]), velocity = float.Parse(values[1]), midiNumber = int.Parse(values[2]), finger = int.Parse(values[3]) });
+            onReleaseTimestamps.Add(new PressData { timeStamp = float.Parse(values[0]), velocity = float.Parse(values[1]), midiNumber = int.Parse(values[2]), finger = int.Parse(values[3]), hand = 0 });
         }
         isPlaying = true;
         currentTime = 0f;
@@ -192,8 +194,11 @@ public class MidiRecorder : MonoBehaviour
     void Start()
     {
         print(Application.persistentDataPath);
-        arduino = new SerialPort("COM11", 9600);
-        arduino.Open();
+        rightHandMotor = new SerialPort("COM11", 9600);
+        rightHandMotor.Open();
+
+        leftHandMotor = new SerialPort("COM12", 9600);
+        leftHandMotor.Open();
 
         ResetRecording();
   
@@ -243,7 +248,7 @@ public class MidiRecorder : MonoBehaviour
 
                     if(isRecording)
                     {
-                        PressData pressData = new PressData() { midiNumber = note.noteNumber, timeStamp = currentTime, velocity = velocity };
+                        PressData pressData = new PressData() { midiNumber = note.noteNumber, timeStamp = currentTime, velocity = velocity, hand = 0 };
                         onPressTimestamps.Add(pressData);
                     }
                 }
@@ -293,7 +298,7 @@ public class MidiRecorder : MonoBehaviour
         };
     }
 
-    void VibrateFinger(int fingerIndex, float strength)
+    void VibrateFinger(int fingerIndex, float strength, int hand)
     {
         string writeString = "";
         for(int i = 0; i < 5; i++)
@@ -307,12 +312,20 @@ public class MidiRecorder : MonoBehaviour
                 writeString += "0";
             }
         }
-        arduino.Write(writeString + "\r\n");
+        if(hand == 0)
+        {
+            leftHandMotor.Write(writeString + "\r\n");
+        }
+        else
+        {
+            rightHandMotor.Write(writeString + "\r\n");
+        }
     }
 
     private void OnApplicationQuit()
     {
-        arduino.Close();
+        leftHandMotor.Close();
+        rightHandMotor.Close();
     }
 
     // Update is called once per frame
@@ -339,7 +352,7 @@ public class MidiRecorder : MonoBehaviour
                     DisplayNote(mappedMidiNumber, currentPress.velocity);
 
                     int finger = currentPress.finger;
-                    VibrateFinger(finger, currentPress.velocity);
+                    VibrateFinger(finger, currentPress.velocity, currentPress.hand);
                 }
             }
             // If at the end, stop playing

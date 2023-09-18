@@ -32,6 +32,10 @@ public class RecordingManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha4))
         {
             recordingSlot = 3;
+        } 
+        if (Input.GetKeyDown(KeyCode.Alpha5))
+        {
+            recordingSlot = 4;
         }
     }
 }
