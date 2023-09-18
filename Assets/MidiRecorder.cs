@@ -9,6 +9,7 @@ using System.IO.Ports;
 
 public class MidiRecorder : MonoBehaviour
 {
+    public bool lockTeacherSlots = false;
     public List<HandMocapRecorder> handRecorders;
     public List<HandMocapPlayer> handPlayers;
 
@@ -248,15 +249,19 @@ public class MidiRecorder : MonoBehaviour
                 }
                 if (note.noteNumber == 36)
                 {
-                    isRecording = !isRecording;
-                    if (isRecording)
+                    if(!lockTeacherSlots || (lockTeacherSlots && RecordingManager.recordingSlot != 0 && RecordingManager.recordingSlot != 1))
                     {
-                        BeginRecord();
+                        isRecording = !isRecording;
+                        if (isRecording)
+                        {
+                            BeginRecord();
+                        }
+                        else
+                        {
+                            EndRecord();
+                        }
                     }
-                    else
-                    {
-                        EndRecord();
-                    }
+             
                 }
 
                 if (note.noteNumber == 38)

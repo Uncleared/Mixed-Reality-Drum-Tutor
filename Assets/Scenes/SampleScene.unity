@@ -5609,6 +5609,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a418446cf61432d4393bb41d9011a4fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  lockTeacherSlots: 1
   handRecorders:
   - {fileID: 2143818579}
   - {fileID: 1092451961}
@@ -6637,7 +6638,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1092451945}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d569e98c669ae2e4fa8adeeee9ca2894, type: 3}
   m_Name: 
@@ -7908,7 +7909,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2143818571}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d569e98c669ae2e4fa8adeeee9ca2894, type: 3}
   m_Name: 

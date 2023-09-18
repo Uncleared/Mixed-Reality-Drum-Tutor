@@ -172,7 +172,7 @@ public class HandMocapPlayer : MonoBehaviour
             currentTime += Time.deltaTime;
             int boneCount = int.Parse(playbackData[currentFrame][0]);
             float neededTime = float.Parse(playbackData[currentFrame][boneCount * 2 + 3]);
-            if(currentTime >= neededTime)
+            if(currentTime >= neededTime - 0.8f)
             {
                 AssignBoneData(playbackData[currentFrame]);
                 currentFrame++;
